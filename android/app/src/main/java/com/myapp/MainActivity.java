@@ -1,6 +1,7 @@
 package com.myapp;
 
 import com.facebook.react.ReactActivity;
+import android.os.Bundle;
 
 public class MainActivity extends ReactActivity {
 
@@ -11,5 +12,14 @@ public class MainActivity extends ReactActivity {
   @Override
   protected String getMainComponentName() {
     return "MyApp";
+  }
+
+  /**
+   * @Author Manjil Tamang
+   * react-native-screens package requires one additional configuration step to properly work on Android devices
+   */
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(null);
   }
 }
