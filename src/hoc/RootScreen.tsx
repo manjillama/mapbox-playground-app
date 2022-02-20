@@ -1,33 +1,15 @@
-import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
-import {useNavigation} from '@react-navigation/native';
-import {Button, Modal, Text} from 'native-base';
+import {Button} from 'native-base';
 import React, {ComponentType, useState} from 'react';
+import MenuModal from '../components/menu-modal';
 
 export const withRootScreen =
   (ChildComponent: ComponentType<any>) => (props: any) => {
-    const navigation = useNavigation<BottomTabNavigationProp<any>>();
-    const [open, setOpen] = useState(false);
-
-    const openModal = () => {
-      setOpen(true);
-    };
+    const [openMenu, setOpenMenu] = useState(false);
 
     return (
       <>
-        <Button onPress={openModal}>Open Menu</Button>
-        <Modal
-          animationPreset="slide"
-          isOpen={open}
-          onClose={() => setOpen(false)}
-          mt={12}>
-          <Modal.Content
-            maxWidth="350"
-            style={{marginLeft: 0, marginRight: 'auto'}}>
-            <Modal.Body>
-              <Text>This is modal</Text>
-            </Modal.Body>
-          </Modal.Content>
-        </Modal>
+        <Button onPress={() => setOpenMenu(true)}>Open Menu</Button>
+        <MenuModal openMenu={openMenu} setOpenMenu={setOpenMenu} />
         <ChildComponent {...props} />
       </>
     );

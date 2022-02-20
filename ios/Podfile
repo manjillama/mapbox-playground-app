@@ -23,7 +23,19 @@ target 'MyApp' do
   # you should disable the next line.
   # use_flipper!()
 
+  pre_install do |installer|
+    # Custom Pod file config by Manjil Tamang
+    # https://github.com/react-native-mapbox-gl/maps/blob/HEAD/ios/install.md
+    $RNMBGL.pre_install(installer)
+    #########################################
+  end
+
   post_install do |installer|
+    # Custom Pod file config by Manjil Tamang
+    # https://github.com/react-native-mapbox-gl/maps/blob/HEAD/ios/install.md
+    $RNMBGL.post_install(installer)
+    #########################################
     react_native_post_install(installer)
   end
 end
+
