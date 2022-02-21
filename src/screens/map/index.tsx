@@ -1,7 +1,8 @@
 import React, {useState} from 'react';
 import {StatusBar, View} from 'native-base';
-import {StyleSheet} from 'react-native';
+import {StyleSheet, TouchableOpacity} from 'react-native';
 import MapboxGL from '@react-native-mapbox-gl/maps';
+import mbxDirectionsService from '@mapbox/mapbox-sdk/services/directions';
 import {MAPBOX_ACCESS_TOKEN} from '@env';
 import SearchPanel from './components/SearchPanel';
 import MenuModal from '../../components/menu-modal';
@@ -12,6 +13,10 @@ import ChargingStationIcon from '../../assets/charging-station.png';
 import ServiceCenterIcon from '../../assets/servicing-center.png';
 
 MapboxGL.setAccessToken(MAPBOX_ACCESS_TOKEN);
+const mbxDirectionClient = mbxDirectionsService({
+  accessToken: MAPBOX_ACCESS_TOKEN,
+});
+
 const styles = StyleSheet.create({
   page: {
     height: '110%',
@@ -38,6 +43,21 @@ const MapScreen = () => {
   const [bikeGeoLocation, setBikeGeoLocation] = useState<[number, number]>([
     85.32996009929492, 27.73070808550141,
   ]);
+  const [directionRoutes, setDirectionRoutes] = useState<{
+    routes:
+      | null
+      | {
+          distance: number;
+          duration: number;
+          geometry: {
+            coordinates: [number, number];
+          };
+        }[];
+    currentRouteIndex: number;
+  }>({
+    routes: null,
+    currentRouteIndex: 0,
+  });
   const [, chargeStations] = useFetchMapLocations(
     'charge-stations',
     800,
@@ -51,6 +71,37 @@ const MapScreen = () => {
     bikeGeoLocation[1],
     bikeGeoLocation[0],
   );
+
+  function setNavigationRoutes(destLat: number, destLon: number) {
+    mbxDirectionClient
+      .getDirections({
+        alternatives: true,
+        profile: 'driving-traffic',
+        waypoints: [
+          {
+            coordinates: bikeGeoLocation,
+          },
+          {
+            coordinates: [destLon, destLat],
+          },
+        ],
+        steps: true,
+        bannerInstructions: true,
+        geometries: 'geojson',
+      })
+      .send()
+      .then(({body: {routes}}: any) => {
+        setDirectionRoutes({
+          ...directionRoutes,
+          routes: routes.map((route: any, index: any) => {
+            if (index > 1) return;
+            return route;
+          }),
+        });
+      });
+  }
+
+  console.log('Direction Routes', directionRoutes);
 
   return (
     <>
@@ -87,8 +138,54 @@ const MapScreen = () => {
             ])}
             markerImage={ServiceCenterIcon}
           />
+          {directionRoutes.routes && (
+            <>
+              {directionRoutes.routes.map((route, index) => {
+                const layerProps: any = {};
+                if (directionRoutes.currentRouteIndex === index) {
+                  if (index === 0) layerProps.aboveLayerID = `routeFill-${1}`;
+                  else layerProps.aboveLayerID = `routeFill-${0}`;
+                }
+                console.log(layerProps);
+
+                return (
+                  <MapboxGL.ShapeSource
+                    key={index}
+                    onPress={() =>
+                      setDirectionRoutes({
+                        ...directionRoutes,
+                        currentRouteIndex: index,
+                      })
+                    }
+                    id={`route-${index}`}
+                    shape={{
+                      type: 'LineString',
+                      coordinates: route.geometry.coordinates,
+                    }}>
+                    <MapboxGL.LineLayer
+                      id={`routeFill-${index}`}
+                      style={{
+                        lineColor:
+                          index === directionRoutes.currentRouteIndex
+                            ? '#26b0ff'
+                            : '#ccc',
+                        lineWidth: 5,
+                        lineCap: 'square',
+                        lineOpacity: 1,
+                      }}
+                      {...layerProps}
+                    />
+                  </MapboxGL.ShapeSource>
+                );
+              })}
+            </>
+          )}
         </MapboxGL.MapView>
-        <SearchPanel setOpenMenu={setOpenMenu} shouldShow={showNonMapItems} />
+        <SearchPanel
+          setNavigationRoutes={setNavigationRoutes}
+          setOpenMenu={setOpenMenu}
+          shouldShow={showNonMapItems}
+        />
         <MenuModal openMenu={openMenu} setOpenMenu={setOpenMenu} />
       </View>
     </>

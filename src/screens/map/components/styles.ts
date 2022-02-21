@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.2,
     shadowRadius: 3,
+    alignSelf: 'center',
   },
   fullScreenPanel: {
     backgroundColor: 'white',
@@ -32,7 +33,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    alignItems: 'center',
   },
 });
 

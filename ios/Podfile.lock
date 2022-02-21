@@ -410,7 +410,7 @@ SPEC CHECKSUMS:
   boost-for-react-native: 39c7adb57c4e60d6c5479dd8623128eb5b3f0f2c
   DoubleConversion: cf9b38bf0b2d048436d9a82ad2abe1404f11e7de
   FBLazyVector: 7b423f9e248eae65987838148c36eec1dbfe0b53
-  FBReactNativeSpec: a442e4995ceccd3c7ebfa0ac3b6f4b29b13f4ca1
+  FBReactNativeSpec: 4648f51f7ad77494521b11d5115c17b9b3a333af
   glog: 73c2498ac6884b13ede40eda8228cb1eee9d9d62
   Mapbox-iOS-SDK: a5915700ec84bc1a7f8b3e746d474789e35b7956
   MapboxMobileEvents: 2bc0ca2eedb627b73cf403258dce2b2fa98074a6
