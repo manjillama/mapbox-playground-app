@@ -4,6 +4,10 @@ require_relative '../node_modules/@react-native-community/cli-platform-ios/nativ
 platform :ios, '10.0'
 
 target 'MyApp' do
+  # Custom Pod config config by Manjil Tamang
+  pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
+  #########################################
+
   config = use_native_modules!
 
   use_react_native!(
@@ -31,11 +35,10 @@ target 'MyApp' do
   end
 
   post_install do |installer|
-    # Custom Pod file config by Manjil Tamang
+    # Custom Pod config config by Manjil Tamang
     # https://github.com/react-native-mapbox-gl/maps/blob/HEAD/ios/install.md
     $RNMBGL.post_install(installer)
     #########################################
     react_native_post_install(installer)
   end
 end
-
