@@ -5,9 +5,16 @@ import MapboxGL from '@react-native-mapbox-gl/maps';
 function AddLocationMarkers({
   coordinates,
   markerImage,
+  setNavigationRoutes,
 }: {
   coordinates: [[number, number]];
   markerImage: ImageSourcePropType;
+  setNavigationRoutes?: (
+    destLat: number,
+    destLon: number,
+    showMarker?: boolean,
+  ) => void;
+  disabled?: boolean;
 }): JSX.Element {
   //   if (chargeStations.length <= 0) return null;
 
@@ -42,7 +49,11 @@ function AddLocationMarkers({
           key={index}
           id={`marker-${index}`}
           coordinate={[coords[0], coords[1]]}>
-          <TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              if (setNavigationRoutes)
+                setNavigationRoutes(coords[1], coords[0]);
+            }}>
             <Image
               source={markerImage}
               style={{

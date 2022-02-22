@@ -7,9 +7,8 @@ import {MAPBOX_ACCESS_TOKEN} from '@env';
 import {debounce} from 'lodash';
 import styles from './styles';
 import {TouchableOpacity} from 'react-native';
-import FeatherIcon from 'react-native-vector-icons/Feather';
-import MCIcon from 'react-native-vector-icons/MaterialIcons';
-
+import Icon from '../../../components/icon';
+import {marginRight} from 'styled-system';
 // interface Props {
 //   shouldShow: boolean;
 //   inAnimation: Animatable.Animation | string;
@@ -32,18 +31,26 @@ import MCIcon from 'react-native-vector-icons/MaterialIcons';
 // }
 
 type Props = {
-  setOpenMenu: (openMenu: boolean) => void;
+  setOpenNavigationMenu: (openMenu: boolean) => void;
   shouldShow: boolean;
-  setNavigationRoutes: (destLat: number, destLon: number) => void;
+  setNavigationRoutes: (
+    destLat: number,
+    destLon: number,
+    showMarker?: boolean,
+  ) => void;
 };
 
 const fetchLocations = async (query: any, cb: any) => {
   let locations = [];
   if (query) {
-    const res = await axios.get(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${query.trim()}.json?country=np&types=place%2Caddress%2Ccountry%2Cregion%2Cdistrict%2Clocality%2Cneighborhood%2Cpoi&language=en&access_token=${MAPBOX_ACCESS_TOKEN}`,
-    );
-    locations = res.data.features;
+    try {
+      const res = await axios.get(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${query.trim()}.json?country=np&limit=12&types=place,address,region,district,locality,neighborhood,poi&language=en&access_token=${MAPBOX_ACCESS_TOKEN}`,
+      );
+      locations = res.data.features;
+    } catch (err) {
+      console.error('MBX geocoding api', err);
+    }
   }
   cb(locations);
 };
@@ -52,7 +59,11 @@ const debouncedFetchData = debounce((query, cb) => {
   fetchLocations(query, cb);
 }, 200);
 
-const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
+const SearchPanel = ({
+  setNavigationRoutes,
+  setOpenNavigationMenu,
+  shouldShow,
+}: Props) => {
   const [openSearchBox, setOpenSearchBox] = useState(false);
   const [query, setQuery] = useState('');
   const [locations, setLocations] = useState([]);
@@ -63,10 +74,9 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
     });
   }, [query]);
 
-  function closeSearchBox(fn?: () => void) {
+  function closeSearchBox(selectedLocation = '', fn?: () => void) {
     setOpenSearchBox(false);
-    setLocations([]);
-    setQuery('');
+    setQuery(selectedLocation);
     if (fn) fn();
   }
 
@@ -82,15 +92,15 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
             <Box style={styles.topPanel}>
               <TouchableOpacity
                 style={{paddingRight: 8}}
-                onPress={() => setOpenMenu(true)}>
-                <MCIcon name="menu" size={28} color="#3a3a3a" />
+                onPress={() => setOpenNavigationMenu(true)}>
+                <Icon as="fea" name="menu" size={28} color="#3a3a3a" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={{flex: 1}}
                 onPress={() => setOpenSearchBox(true)}>
                 <Box height="100%" justifyContent="center">
                   <Text fontSize={16} color="dark.100">
-                    Search here
+                    {query ? query : 'Search here'}
                   </Text>
                 </Box>
               </TouchableOpacity>
@@ -106,7 +116,7 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
                     marginLeft: -4,
                   }}
                   onPress={() => closeSearchBox()}>
-                  <FeatherIcon name="chevron-left" size={30} />
+                  <Icon as="fea" name="chevron-left" size={30} />
                 </TouchableOpacity>
                 <Input
                   padding={0}
@@ -116,6 +126,7 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
                   // _focus={{
                   //   borderWidth: 0,
                   // }}
+                  value={query}
                   onChangeText={setQuery}
                   placeholder="Search"
                   flex={1}
@@ -123,7 +134,13 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
                   color="dark.100"
                 />
               </Box>
-              <Box width="100%" bgColor="#f7f7f7" marginTop={4}>
+              <View
+                width="100%"
+                position="relative"
+                zIndex={10000}
+                height="100%"
+                bgColor="#f7f7f7"
+                marginTop={4}>
                 <FlatList
                   marginTop={4}
                   data={locations}
@@ -131,10 +148,11 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
                     return (
                       <TouchableOpacity
                         onPress={() =>
-                          closeSearchBox(() =>
+                          closeSearchBox(item.place_name, () =>
                             setNavigationRoutes(
                               item.geometry.coordinates[1],
                               item.geometry.coordinates[0],
+                              true,
                             ),
                           )
                         }
@@ -144,14 +162,20 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
                           backgroundColor: '#fff',
                           borderBottomWidth: 1,
                           borderBottomColor: '#f7f7f7',
+                          flexDirection: 'row',
+                          alignItems: 'center',
                         }}>
-                        <Text>{item.text}</Text>
+                        <RenderSearchPlaceIcon placeType={item.place_type[0]} />
+
+                        <Text marginLeft={3} flexShrink={1}>
+                          {item.place_name}
+                        </Text>
                       </TouchableOpacity>
                     );
                   }}
                   keyExtractor={item => item.id}
                 />
-              </Box>
+              </View>
             </VStack>
           )}
         </SafeAreaView>
@@ -160,6 +184,11 @@ const SearchPanel = ({setNavigationRoutes, setOpenMenu, shouldShow}: Props) => {
   );
 };
 
-function SearchBox() {}
+function RenderSearchPlaceIcon({placeType}: {placeType: string}) {
+  if (placeType === 'poi')
+    return <Icon size={18} as="mci" name="fireplace-off" />;
+
+  return <Icon size={18} as="ion" name="location-sharp" />;
+}
 
 export default SearchPanel;

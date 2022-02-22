@@ -7,18 +7,18 @@ import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {RouteName} from './@types';
 import MenuItem from './menu-item';
 
-const MenuModal = ({
-  openMenu,
-  setOpenMenu,
+const NavigationMenuModal = ({
+  openNavigationMenu,
+  setOpenNavigationMenu,
 }: {
-  openMenu: boolean;
-  setOpenMenu: (visibility: boolean) => void;
+  openNavigationMenu: boolean;
+  setOpenNavigationMenu: (visibility: boolean) => void;
 }) => {
   const navigation = useNavigation<BottomTabNavigationProp<any>>();
   const route = useRoute();
 
   function closeAndNavigate(routeName: RouteName) {
-    setOpenMenu(false);
+    setOpenNavigationMenu(false);
     navigation.navigate(routeName);
   }
 
@@ -26,10 +26,10 @@ const MenuModal = ({
     <CustomModal
       animationIn="slideInLeft"
       animationOut="slideOutLeft"
-      isModalVisible={openMenu}
-      setModalVisible={setOpenMenu}
+      isModalVisible={openNavigationMenu}
+      setModalVisible={setOpenNavigationMenu}
       swipeDirection="left"
-      onSwipeComplete={() => setOpenMenu(false)}
+      onSwipeComplete={() => setOpenNavigationMenu(false)}
       style={styles.container}>
       <View style={{flex: 1, backgroundColor: '#fff'}}>
         <VStack space={4}>
@@ -54,4 +54,4 @@ const MenuModal = ({
   );
 };
 
-export default MenuModal;
+export default NavigationMenuModal;

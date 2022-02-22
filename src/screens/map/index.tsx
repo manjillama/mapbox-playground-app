@@ -1,21 +1,21 @@
 import React, {useState} from 'react';
-import {StatusBar, View} from 'native-base';
+import {Box, Fab, StatusBar, View} from 'native-base';
 import {StyleSheet, TouchableOpacity} from 'react-native';
 import MapboxGL from '@react-native-mapbox-gl/maps';
-import mbxDirectionsService from '@mapbox/mapbox-sdk/services/directions';
 import {MAPBOX_ACCESS_TOKEN} from '@env';
 import SearchPanel from './components/SearchPanel';
-import MenuModal from '../../components/menu-modal';
+import MenuModal from '../../components/navigation-menu-modal';
 import {useFetchMapLocations} from './hooks/useFetchMapLocations';
 import AddLocationMarkers from './components/AddLocationMarkers';
 import BikeIcon from '../../assets/p1.png';
+import LocationIcon from '../../assets/location-marker.png';
 import ChargingStationIcon from '../../assets/charging-station.png';
 import ServiceCenterIcon from '../../assets/servicing-center.png';
+import MIcon from 'react-native-vector-icons/MaterialIcons';
+import {getNavigationRoutes} from './utils';
+import Icon from '../../components/icon';
 
 MapboxGL.setAccessToken(MAPBOX_ACCESS_TOKEN);
-const mbxDirectionClient = mbxDirectionsService({
-  accessToken: MAPBOX_ACCESS_TOKEN,
-});
 
 const styles = StyleSheet.create({
   page: {
@@ -38,26 +38,27 @@ export const NEPAL_BOUNDRIES: {
 };
 
 const MapScreen = () => {
-  const [openMenu, setOpenMenu] = useState(false);
+  const [openNavigationMenu, setOpenNavigationMenu] = useState(false);
   const [showNonMapItems, setShowNonMapItems] = useState(true);
   const [bikeGeoLocation, setBikeGeoLocation] = useState<[number, number]>([
     85.32996009929492, 27.73070808550141,
   ]);
-  const [directionRoutes, setDirectionRoutes] = useState<{
-    routes:
-      | null
-      | {
-          distance: number;
-          duration: number;
-          geometry: {
-            coordinates: [number, number];
-          };
-        }[];
-    currentRouteIndex: number;
-  }>({
-    routes: null,
-    currentRouteIndex: 0,
+  const [bounds, setBounds] = useState({
+    ne: bikeGeoLocation,
+    sw: bikeGeoLocation,
   });
+  const [centerCoordinate, setCenterCoordinate] = useState([
+    bikeGeoLocation[0],
+    bikeGeoLocation[1],
+  ]);
+  const [directionRoute, setDirectionRoute] = useState<{
+    distance: number;
+    duration: number;
+    geometry: {
+      coordinates: [number, number][];
+    };
+    showMarker?: boolean;
+  } | null>(null);
   const [, chargeStations] = useFetchMapLocations(
     'charge-stations',
     800,
@@ -72,36 +73,32 @@ const MapScreen = () => {
     bikeGeoLocation[0],
   );
 
-  function setNavigationRoutes(destLat: number, destLon: number) {
-    mbxDirectionClient
-      .getDirections({
-        alternatives: true,
-        profile: 'driving-traffic',
-        waypoints: [
-          {
-            coordinates: bikeGeoLocation,
-          },
-          {
-            coordinates: [destLon, destLat],
-          },
-        ],
-        steps: true,
-        bannerInstructions: true,
-        geometries: 'geojson',
-      })
-      .send()
-      .then(({body: {routes}}: any) => {
-        setDirectionRoutes({
-          ...directionRoutes,
-          routes: routes.map((route: any, index: any) => {
-            if (index > 1) return;
-            return route;
-          }),
-        });
-      });
+  function setNavigationRoutes(
+    destLat: number,
+    destLon: number,
+    showMarker = false,
+  ) {
+    getNavigationRoutes(bikeGeoLocation, [destLon, destLat], (routes: any) => {
+      setDirectionRoute({...routes[0], showMarker});
+      const destinationCoornidates =
+        routes[0].geometry.coordinates[
+          routes[0].geometry.coordinates.length - 1
+        ];
+      setDestinationBound(destinationCoornidates);
+    });
   }
 
-  console.log('Direction Routes', directionRoutes);
+  function setDestinationBound(destinationBound: [number, number]) {
+    setBounds({
+      ...bounds,
+      sw: destinationBound,
+    });
+  }
+
+  function recenterCamera(coordinates: [number, number]) {
+    setCenterCoordinate(coordinates);
+    setTimeout(() => setCenterCoordinate([0, 0]), 200);
+  }
 
   return (
     <>
@@ -112,19 +109,36 @@ const MapScreen = () => {
       />
 
       <View style={styles.page}>
-        <MapboxGL.MapView style={styles.map}>
+        <MapboxGL.MapView
+          style={styles.map}
+          onDidFinishRenderingMapFully={() => {
+            recenterCamera(bikeGeoLocation);
+          }}>
           <MapboxGL.UserLocation animated showsUserHeadingIndicator visible />
           <MapboxGL.Camera
             zoomLevel={12}
-            centerCoordinate={bikeGeoLocation}
+            centerCoordinate={
+              centerCoordinate[0] !== 0 && centerCoordinate[0] !== 0
+                ? centerCoordinate
+                : undefined
+            }
             animationMode="flyTo"
+            padding={{
+              paddingLeft: 20,
+              paddingRight: 20,
+              paddingTop: 20,
+              paddingBottom: 20,
+            }}
             maxBounds={NEPAL_BOUNDRIES}
+            bounds={bounds}
           />
           <AddLocationMarkers
+            setNavigationRoutes={setNavigationRoutes}
             coordinates={[bikeGeoLocation]}
             markerImage={BikeIcon}
           />
           <AddLocationMarkers
+            setNavigationRoutes={setNavigationRoutes}
             coordinates={chargeStations.map((c: any) => [
               c.location.coordinates[0],
               c.location.coordinates[1],
@@ -132,61 +146,84 @@ const MapScreen = () => {
             markerImage={ChargingStationIcon}
           />
           <AddLocationMarkers
+            setNavigationRoutes={setNavigationRoutes}
             coordinates={serviceCenters.map((c: any) => [
               c.location.coordinates[0],
               c.location.coordinates[1],
             ])}
             markerImage={ServiceCenterIcon}
           />
-          {directionRoutes.routes && (
+          {directionRoute && (
             <>
-              {directionRoutes.routes.map((route, index) => {
-                const layerProps: any = {};
-                if (directionRoutes.currentRouteIndex === index) {
-                  if (index === 0) layerProps.aboveLayerID = `routeFill-${1}`;
-                  else layerProps.aboveLayerID = `routeFill-${0}`;
-                }
-                console.log(layerProps);
-
-                return (
-                  <MapboxGL.ShapeSource
-                    key={index}
-                    onPress={() =>
-                      setDirectionRoutes({
-                        ...directionRoutes,
-                        currentRouteIndex: index,
-                      })
-                    }
-                    id={`route-${index}`}
-                    shape={{
-                      type: 'LineString',
-                      coordinates: route.geometry.coordinates,
-                    }}>
-                    <MapboxGL.LineLayer
-                      id={`routeFill-${index}`}
-                      style={{
-                        lineColor:
-                          index === directionRoutes.currentRouteIndex
-                            ? '#26b0ff'
-                            : '#ccc',
-                        lineWidth: 5,
-                        lineCap: 'square',
-                        lineOpacity: 1,
-                      }}
-                      {...layerProps}
-                    />
-                  </MapboxGL.ShapeSource>
-                );
-              })}
+              <MapboxGL.ShapeSource
+                id="route"
+                shape={{
+                  type: 'LineString',
+                  coordinates: directionRoute.geometry.coordinates,
+                }}>
+                <MapboxGL.LineLayer
+                  id="routeLayer"
+                  style={{
+                    lineColor: '#26b0ff',
+                    lineWidth: 5,
+                    lineCap: 'square',
+                    lineOpacity: 1,
+                  }}
+                />
+              </MapboxGL.ShapeSource>
+              {directionRoute.showMarker && (
+                <AddLocationMarkers
+                  coordinates={[
+                    directionRoute.geometry.coordinates[
+                      directionRoute.geometry.coordinates.length - 1
+                    ],
+                  ]}
+                  markerImage={LocationIcon}
+                />
+              )}
             </>
           )}
         </MapboxGL.MapView>
+        {/* <Fab
+          onPress={() => recenterCamera(bikeGeoLocation)}
+          bottom={200}
+          zIndex={1}
+          renderInPortal={false}
+          shadow={2}
+          size="sm"
+          icon={
+            <Icon as="mi" color="white" name="location-searching" size={20} />
+          }
+        /> */}
+        <View
+          position="absolute"
+          bottom={200}
+          right={4}
+          rounded="full"
+          size="12"
+          shadow={4}
+          bgColor="primary.50">
+          <TouchableOpacity
+            style={{
+              height: '100%',
+              width: '100%',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+            onPress={() => recenterCamera(bikeGeoLocation)}>
+            <Icon as="mi" color="white" name="location-searching" size={22} />
+          </TouchableOpacity>
+        </View>
         <SearchPanel
           setNavigationRoutes={setNavigationRoutes}
-          setOpenMenu={setOpenMenu}
+          setOpenNavigationMenu={setOpenNavigationMenu}
           shouldShow={showNonMapItems}
         />
-        <MenuModal openMenu={openMenu} setOpenMenu={setOpenMenu} />
+
+        <MenuModal
+          openNavigationMenu={openNavigationMenu}
+          setOpenNavigationMenu={setOpenNavigationMenu}
+        />
       </View>
     </>
   );
