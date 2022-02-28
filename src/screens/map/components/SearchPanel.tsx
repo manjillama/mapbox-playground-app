@@ -1,14 +1,24 @@
 import React, {useEffect, useState} from 'react';
-import {Box, FlatList, Input, Text, View, VStack} from 'native-base';
+import {
+  Box,
+  Center,
+  FlatList,
+  Image,
+  Input,
+  Text,
+  View,
+  VStack,
+} from 'native-base';
 import * as Animatable from 'react-native-animatable';
 import axios from 'axios';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {MAPBOX_ACCESS_TOKEN} from '@env';
 import {debounce} from 'lodash';
 import styles from './styles';
-import {TouchableOpacity} from 'react-native';
+import {TouchableOpacity, ViewBase} from 'react-native';
 import Icon from '../../../components/icon';
-import {marginRight} from 'styled-system';
+// import YatriHubImage from '../../../assets/yatrihub.png';
+
 // interface Props {
 //   shouldShow: boolean;
 //   inAnimation: Animatable.Animation | string;
@@ -142,6 +152,15 @@ const SearchPanel = ({
                 bgColor="#f7f7f7"
                 marginTop={4}>
                 <FlatList
+                  contentContainerStyle={{flexGrow: 1}}
+                  // ListEmptyComponent={() => (
+                  //   <Image
+                  //     height="60%"
+                  //     source={YatriHubImage}
+                  //     resizeMode="contain"
+                  //     alt="Man using yatrihub app"
+                  //   />
+                  // )}
                   marginTop={4}
                   data={locations}
                   renderItem={({item}) => {

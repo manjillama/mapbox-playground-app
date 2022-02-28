@@ -4,5 +4,5 @@
 export type RootStackParamList = {
   Home: undefined;
   Map: undefined;
-  Settings: undefined;
+  SettingsRoot: undefined;
 };

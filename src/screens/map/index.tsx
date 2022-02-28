@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
-import {Box, Fab, StatusBar, View} from 'native-base';
-import {StyleSheet, TouchableOpacity} from 'react-native';
+import {StatusBar, View} from 'native-base';
+import {TouchableOpacity} from 'react-native';
 import MapboxGL from '@react-native-mapbox-gl/maps';
 import {MAPBOX_ACCESS_TOKEN} from '@env';
 import SearchPanel from './components/SearchPanel';
@@ -11,24 +11,11 @@ import BikeIcon from '../../assets/p1.png';
 import LocationIcon from '../../assets/location-marker.png';
 import ChargingStationIcon from '../../assets/charging-station.png';
 import ServiceCenterIcon from '../../assets/servicing-center.png';
-import MIcon from 'react-native-vector-icons/MaterialIcons';
 import {getNavigationRoutes} from './utils';
 import Icon from '../../components/icon';
 
 MapboxGL.setAccessToken(MAPBOX_ACCESS_TOKEN);
 
-const styles = StyleSheet.create({
-  page: {
-    height: '110%',
-  },
-  map: {
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    position: 'absolute',
-  },
-});
 export const NEPAL_BOUNDRIES: {
   ne: [number, number];
   sw: [number, number];
@@ -80,11 +67,11 @@ const MapScreen = () => {
   ) {
     getNavigationRoutes(bikeGeoLocation, [destLon, destLat], (routes: any) => {
       setDirectionRoute({...routes[0], showMarker});
-      const destinationCoornidates =
+      const destinationCoordinates =
         routes[0].geometry.coordinates[
           routes[0].geometry.coordinates.length - 1
         ];
-      setDestinationBound(destinationCoornidates);
+      setDestinationBound(destinationCoordinates);
     });
   }
 
@@ -108,9 +95,15 @@ const MapScreen = () => {
         backgroundColor="#946f5f"
       />
 
-      <View style={styles.page}>
+      <View style={{height: '110%'}}>
         <MapboxGL.MapView
-          style={styles.map}
+          style={{
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            position: 'absolute',
+          }}
           onDidFinishRenderingMapFully={() => {
             recenterCamera(bikeGeoLocation);
           }}>
@@ -184,17 +177,6 @@ const MapScreen = () => {
             </>
           )}
         </MapboxGL.MapView>
-        {/* <Fab
-          onPress={() => recenterCamera(bikeGeoLocation)}
-          bottom={200}
-          zIndex={1}
-          renderInPortal={false}
-          shadow={2}
-          size="sm"
-          icon={
-            <Icon as="mi" color="white" name="location-searching" size={20} />
-          }
-        /> */}
         <View
           position="absolute"
           bottom={200}
